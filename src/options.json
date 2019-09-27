@@ -1,0 +1,53 @@
+{
+	"additionalProperties": false,
+	"type": "object",
+	"definitions": {
+		"RestrictionsSchema": {
+			"type": "array",
+			"items": {
+				"description": "A restriction",
+				"anyOf": [
+					{
+						"$ref": "#/definitions/RestrictionSchema"
+					}
+				]
+			}
+		},
+		"RestrictionSchema": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"chunkName": {
+					"description": "Chunk name to put restriction on",
+					"type": "string"
+				},
+				"jsSize": {
+					"description": "Specify restriction on number of bytes JS chunks can be (in Bytes)",
+					"type": "number"
+				},
+				"cssSize": {
+					"description": "Specify restriction on number of bytes CSS chunks can be (in Bytes)",
+					"type": "number"
+				},
+				"logType": {
+					"description": "Specify the default way to treat all the restriction checks at chunk level, overrides the default behaviour",
+					"enum": ["warning", "error"]
+				}
+			}
+		}
+	},
+	"properties": {
+		"restrictions": {
+			"description": "Match and execute these restrictions when its schema is matched",
+			"anyOf": [
+				{
+					"$ref": "#/definitions/RestrictionsSchema"
+				}
+			]
+		},
+		"defaultLogType": {
+			"description": "Specify the default way to treat all the restriction checks",
+			"enum": ["warning", "error"]
+		}
+	}
+}

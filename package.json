@@ -1,0 +1,59 @@
+{
+  "name": "chunk-restriction-plugin",
+  "version": "0.0.1",
+  "description": "Chunk restriction plugin for webpack",
+  "main": "dist/cjs.js",
+  "engines": {
+    "node": ">= 6.9.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "lint:prettier": "prettier \"{**/*,*}.{js,json}\" --list-different",
+    "lint:js": "eslint --cache src",
+    "lint": "npm run lint:js && npm run lint:prettier",
+    "clean": "rm -r dist",
+    "precommit": "lint-staged",
+    "build": "cross-env NODE_ENV=production babel src -d dist --ignore \"src/**/*.test.js\" --copy-files"
+  },
+  "lint-staged": {
+    "*.js": [
+      "npm run lint:js",
+      "npm run lint:prettier"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/prate3k/chunk-restriction-plugin.git"
+  },
+  "keywords": [
+    "chunk-restriction",
+    "chunk-restriction-plugin",
+    "restriction-plugin",
+    "webpack",
+    "webpack chunk",
+    "webpack-plugin"
+  ],
+  "author": "Prateek Kathote",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/prate3k/chunk-restriction-plugin/issues"
+  },
+  "homepage": "https://github.com/prate3k/chunk-restriction-plugin#readme",
+  "devDependencies": {
+    "@babel/cli": "7.6.2",
+    "@babel/core": "7.6.2",
+    "@babel/preset-env": "7.6.2",
+    "@webpack-contrib/eslint-config-webpack": "3.0.0",
+    "cross-env": "6.0.0",
+    "eslint": "6.4.0",
+    "eslint-config-prettier": "6.3.0",
+    "eslint-plugin-import": "2.18.2",
+    "lint-staged": "3.4.0",
+    "prettier": "1.18.2"
+  },
+  "dependencies": {
+    "schema-utils": "2.4.0"
+  }
+}
