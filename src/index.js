@@ -1,60 +1,14 @@
-import path from 'path';
-
 import validateOptions from 'schema-utils';
 
-import { formatSize, logMessage, hasOwnProperty } from './utils';
+import { formatSize, logMessage, hasOwnProperty, buildManifest } from './utils';
 
 import schema from './options.json';
 
 class ChunkRestrictionPlugin {
 	constructor(opts = {}) {
-		validateOptions(schema, opts, 'Chunk Restriction Plugin');
 		this.opts = opts || {};
+		validateOptions(schema, this.opts, 'Chunk Restriction Plugin');
 		this.handleHook = this.handleHook.bind(this);
-	}
-
-	static buildManifest(compilation, assetsMeta) {
-		const manifest = {};
-		compilation.chunks.forEach((chunk) => {
-			if (!chunk.name) {
-				return;
-			}
-			manifest[chunk.name] = {};
-			for (let i = 0, len = chunk.files.length; i < len; i++) {
-				switch (path.extname(chunk.files[i])) {
-					case '.css':
-					case '.scss':
-						manifest[chunk.name].css = { file: chunk.files[i] };
-						break;
-					case '.js':
-						manifest[chunk.name].js = { file: chunk.files[i] };
-						break;
-					default:
-						break;
-				}
-			}
-		});
-		for (const chunkName in manifest) {
-			if (hasOwnProperty(manifest, chunkName)) {
-				if (
-					!!manifest[chunkName].css &&
-					manifest[chunkName].css.file &&
-					hasOwnProperty(assetsMeta, manifest[chunkName].css.file)
-				) {
-					manifest[chunkName].css.size =
-						assetsMeta[manifest[chunkName].css.file].size;
-				}
-				if (
-					!!manifest[chunkName].js &&
-					manifest[chunkName].js.file &&
-					hasOwnProperty(assetsMeta, manifest[chunkName].js.file)
-				) {
-					manifest[chunkName].js.size =
-						assetsMeta[manifest[chunkName].js.file].size;
-				}
-			}
-		}
-		return manifest;
 	}
 
 	handleHook(compilation) {
@@ -71,7 +25,7 @@ class ChunkRestrictionPlugin {
 			}
 		}
 
-		const manifest = this.buildManifest(compilation, assetsMeta);
+		const manifest = buildManifest(compilation, assetsMeta);
 
 		restrictions.forEach((restriction) => {
 			if (
@@ -118,4 +72,4 @@ class ChunkRestrictionPlugin {
 	}
 }
 
-module.exports = ChunkRestrictionPlugin;
+export default ChunkRestrictionPlugin;
