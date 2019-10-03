@@ -30,14 +30,14 @@ const webpackConfig = {
 
 ```
 #### Options :
-It contains set of options instructing component when to start observing, notify once it comes to viewport etc. Properties are define like this :
+Properties are define like this :
 > type &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mandatory &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; defaultValue
 
 
 #### restrictions :
 > array  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_mandatory_ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; []
 
-Chunks you want to put restriction on. Consist of object with key value pair with following schema : 
+Chunks you want to put restriction on. Consist of array of object with each object having following properties : 
 
 ##### chunkName :
 Used to specify the chunk name you want to put limit on.
@@ -55,7 +55,7 @@ Possible values : "error" or "warning"
 #### defaultLogType :
 > String &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; optional &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 'warning'
 
-To set the default treatment for all the restriction check specified.
+To set the default treatment for all the restriction check specified. Possible values : "error" or "warning"
 
 
 License
