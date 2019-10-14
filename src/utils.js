@@ -24,46 +24,90 @@ export function hasOwnProperty(object, property) {
 	return Object.prototype.hasOwnProperty.call(object, property);
 }
 
-export function buildManifest(compilation, assetsMeta) {
-	const manifest = {};
+export function buildChunkStatsJson(compilation, assetsMeta) {
+	const chunkStats = {};
 	compilation.chunks.forEach((chunk) => {
 		if (!chunk.name) {
 			return;
 		}
-		manifest[chunk.name] = {};
+		chunkStats[chunk.name] = {};
 		for (let i = 0, len = chunk.files.length; i < len; i++) {
 			switch (path.extname(chunk.files[i])) {
 				case '.css':
 				case '.scss':
-					manifest[chunk.name].css = { file: chunk.files[i] };
+					chunkStats[chunk.name].css = { file: chunk.files[i] };
 					break;
 				case '.js':
-					manifest[chunk.name].js = { file: chunk.files[i] };
+					chunkStats[chunk.name].js = { file: chunk.files[i] };
 					break;
 				default:
 					break;
 			}
 		}
 	});
-	for (const chunkName in manifest) {
-		if (hasOwnProperty(manifest, chunkName)) {
+	for (const chunkName in chunkStats) {
+		if (hasOwnProperty(chunkStats, chunkName)) {
 			if (
-				!!manifest[chunkName].css &&
-				manifest[chunkName].css.file &&
-				hasOwnProperty(assetsMeta, manifest[chunkName].css.file)
+				!!chunkStats[chunkName].css &&
+				chunkStats[chunkName].css.file &&
+				hasOwnProperty(assetsMeta, chunkStats[chunkName].css.file)
 			) {
-				manifest[chunkName].css.size =
-					assetsMeta[manifest[chunkName].css.file].size;
+				chunkStats[chunkName].css.size =
+					assetsMeta[chunkStats[chunkName].css.file].size;
 			}
 			if (
-				!!manifest[chunkName].js &&
-				manifest[chunkName].js.file &&
-				hasOwnProperty(assetsMeta, manifest[chunkName].js.file)
+				!!chunkStats[chunkName].js &&
+				chunkStats[chunkName].js.file &&
+				hasOwnProperty(assetsMeta, chunkStats[chunkName].js.file)
 			) {
-				manifest[chunkName].js.size =
-					assetsMeta[manifest[chunkName].js.file].size;
+				chunkStats[chunkName].js.size =
+					assetsMeta[chunkStats[chunkName].js.file].size;
 			}
 		}
 	}
-	return manifest;
+	return chunkStats;
+}
+
+const regex = /([. 0-9]+)[ ]?(Byte|Bytes|KiB|KB|MB|GB)/i;
+export function parseHumanReadableSizeToByte(text) {
+	const matches = regex.exec(text);
+	if (matches == null) {
+		return {
+			message: `Incorrect text string passed : ${text}, supported format {Byte, Bytes, Kb, Kib, Mb}`,
+			invalid: true,
+			parsedBytes: 0
+		};
+	}
+	const [_, number, unit] = matches; // eslint-disable-line no-unused-vars
+	let times = 0;
+	switch (unit.toLowerCase()) {
+		case 'kib':
+		case 'kb':
+			times = 1;
+			break;
+		case 'mb':
+			times = 2;
+			break;
+		default:
+			break;
+	}
+	return {
+		message: '',
+		invalid: false,
+		parsedBytes: 1024 ** times * Number(number)
+	};
+}
+
+const DEFAULT_MSG_FORMAT =
+	'__CHUNK_NAME__ __EXT__ chunk (size: __TOTAL_SIZE__) is exceeding the set threshold of __RESTRICTION__ by __DIFFERENCE__';
+export function replaceMessagePlaceholder(
+	{ chunkName, ext, totalSize, restriction, difference },
+	messageFormat
+) {
+	return (messageFormat || DEFAULT_MSG_FORMAT)
+		.replace(/__CHUNK_NAME__/g, chunkName)
+		.replace(/__EXT__/g, ext)
+		.replace(/__TOTAL_SIZE__/g, totalSize)
+		.replace(/__RESTRICTION__/g, restriction)
+		.replace(/__DIFFERENCE__/g, difference);
 }
