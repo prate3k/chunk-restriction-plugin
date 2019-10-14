@@ -68,7 +68,7 @@ export function buildChunkStatsJson(compilation, assetsMeta) {
 	return chunkStats;
 }
 
-const regex = /([. 0-9]+)[ ]?(Byte|Bytes|KiB|KB|MB|GB)/i;
+const regex = /([.0-9]+)[ ]?(Byte|Bytes|KiB|KB|MB|GB)/i;
 export function parseHumanReadableSizeToByte(text) {
 	const matches = regex.exec(text);
 	if (matches == null) {
@@ -106,7 +106,7 @@ export function replaceMessagePlaceholder(
 ) {
 	return (messageFormat || DEFAULT_MSG_FORMAT)
 		.replace(/__CHUNK_NAME__/g, chunkName)
-		.replace(/__EXT__/g, ext)
+		.replace(/__EXT__/g, ext.toUpperCase())
 		.replace(/__TOTAL_SIZE__/g, totalSize)
 		.replace(/__RESTRICTION__/g, restriction)
 		.replace(/__DIFFERENCE__/g, difference);

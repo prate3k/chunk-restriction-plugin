@@ -43,11 +43,10 @@ class ChunkRestrictionPlugin {
 			if (cssNumberParser.invalid) {
 				logMessage('error', cssNumberParser.message, compilation);
 			}
-			if (jsNumberParser.invalid || cssNumberParser.invalid) return;
-
 			const jsSize = jsNumberParser.parsedBytes;
 			const cssSize = cssNumberParser.parsedBytes;
 			if (
+				!jsNumberParser.invalid &&
 				typeof jsSize === 'number' &&
 				jsSize < manifest[restriction.chunkName].js.size
 			) {
@@ -68,7 +67,9 @@ class ChunkRestrictionPlugin {
 					compilation
 				);
 			}
+
 			if (
+				!cssNumberParser.invalid &&
 				typeof cssSize === 'number' &&
 				cssSize < manifest[restriction.chunkName].css.size
 			) {
