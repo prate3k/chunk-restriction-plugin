@@ -73,7 +73,7 @@ export function parseHumanReadableSizeToByte(text) {
 	const matches = regex.exec(text);
 	if (matches == null) {
 		return {
-			message: `Incorrect text string passed : ${text}, supported format {Byte, Bytes, Kb, Kib, Mb}`,
+			message: `Incorrect string specified : ${text}, Please check. Supported format {Byte, Bytes, Kb/Kib, Mb}`,
 			invalid: true,
 			parsedBytes: 0
 		};
