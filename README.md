@@ -2,6 +2,12 @@
 > Webpack plugin to help you monitor your chunk size.
 
 
+![Incorrect String](https://i.ibb.co/DMCShNL/Screen-Shot-2019-10-15-at-2-25-02-PM.png)
+
+![Error log](https://i.ibb.co/kczW9D9/Screen-Shot-2019-10-15-at-1-04-21-PM.png)
+
+![Warning log](https://i.ibb.co/zbFNsYW/Screen-Shot-2019-10-15-at-11-08-53-AM.png)
+
 ##### Install the package :
 ```bash
 npm install chunk-restriction-plugin --save
@@ -28,12 +34,6 @@ const webpackConfig = {
 	]
 }
 ```
-
-![Incorrect String](https://i.ibb.co/DMCShNL/Screen-Shot-2019-10-15-at-2-25-02-PM.png)
-
-![Error log](https://i.ibb.co/kczW9D9/Screen-Shot-2019-10-15-at-1-04-21-PM.png)
-
-![Warning log](https://i.ibb.co/zbFNsYW/Screen-Shot-2019-10-15-at-11-08-53-AM.png)
 
 #### Options :
 Properties are define like this :
