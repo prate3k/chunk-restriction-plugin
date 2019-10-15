@@ -2,6 +2,12 @@
 > Webpack plugin to help you monitor your chunk size.
 
 
+![Incorrect String](https://i.ibb.co/DMCShNL/Screen-Shot-2019-10-15-at-2-25-02-PM.png)
+
+![Error log](https://i.ibb.co/kczW9D9/Screen-Shot-2019-10-15-at-1-04-21-PM.png)
+
+![Warning log](https://i.ibb.co/zbFNsYW/Screen-Shot-2019-10-15-at-11-08-53-AM.png)
+
 ##### Install the package :
 ```bash
 npm install chunk-restriction-plugin --save
@@ -27,8 +33,8 @@ const webpackConfig = {
 		})
 	]
 }
-
 ```
+
 #### Options :
 Properties are define like this :
 > type &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mandatory &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; defaultValue
@@ -43,14 +49,38 @@ Chunks you want to put restriction on. Consist of array of object with each obje
 Used to specify the chunk name you want to put limit on.
 
 ##### jsSize :
-Used to set the hard limit on the js chunk size.
+Used to set the hard limit on the js chunk size. <br/>
+Accepted value : `String` <br/>
+Accepted units : `Bytes, KiB/Kb, Mb` only<br/>
+e.g.: '11 Bytes, 22 Kb, 24 Mb etc.'
 
 ##### cssSize :
-Used to set the hard limit on the css chunk size.
+Used to set the hard limit on the css chunk size.<br/>
+type : `String` <br/>
+Accepted units : `Bytes, KiB/Kb, Mb` only <br/>
+e.g.: '11 Bytes, 22 KB, 24 Mb etc.'
 
 ##### logType :
 To specify how to treat this restriction check once its met, as error or warning. Overrides `defaultLogType`. Default value set on the basis of `defaultLogType` option value.
 Possible values : "error" or "warning"
+
+##### logMessageFormat :
+Used to customize log message format as per the way you want to log message. Overrides `defaultLogMessageFormat`. See `defaultLogmessageFormat` for more details.
+
+#### defaultLogMessageFormat :
+> String &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; optional &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 'warning'
+
+Used to customize log message format.<br/>
+
+Available placeholders : 
+<ul>
+    <li><b>__CHUNK_NAME__</b> : Gets replaced with the chunk name</li>
+    <li><b>__EXT__</b> : Gets replaced with the chunk extension</li>
+    <li><b>__TOTAL_SIZE__</b> : Gets replaced with total chunk size</li>
+    <li><b>__RESTRICTION__</b> : Gets replaced with the restriction you have specified for that chunk</li>
+    <li><b>__DIFFERENCE__</b> : Gets replaced with how many bytes that chunk is exceeding the set restriction.</li>
+</ul>
+Default message format : "__CHUNK_NAME__ __EXT__ chunk (size: __TOTAL_SIZE__) is exceeding the set threshold of __RESTRICTION__ by __DIFFERENCE__"
 
 #### defaultLogType :
 > String &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; optional &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 'warning'

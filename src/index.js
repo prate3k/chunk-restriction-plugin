@@ -1,6 +1,13 @@
 import validateOptions from 'schema-utils';
 
-import { formatSize, logMessage, hasOwnProperty, buildManifest } from './utils';
+import {
+	formatSize,
+	logMessage,
+	hasOwnProperty,
+	buildChunkStatsJson,
+	parseHumanReadableSizeToByte,
+	replaceMessagePlaceholder
+} from './utils';
 
 import schema from './options.json';
 
@@ -14,6 +21,7 @@ class ChunkRestrictionPlugin {
 	handleHook(compilation) {
 		const restrictions = this.opts.restrictions || {};
 		const defaultLogType = this.opts.defaultLogType || 'warning';
+		const { defaultLogMessageFormat } = this.opts;
 
 		const assetsMeta = {};
 		for (const asset in compilation.assets) {
@@ -25,38 +33,60 @@ class ChunkRestrictionPlugin {
 			}
 		}
 
-		const manifest = buildManifest(compilation, assetsMeta);
-
+		const manifest = buildChunkStatsJson(compilation, assetsMeta);
 		restrictions.forEach((restriction) => {
+			const jsNumberParser = parseHumanReadableSizeToByte(restriction.jsSize);
+			const cssNumberParser = parseHumanReadableSizeToByte(restriction.cssSize);
+			if (jsNumberParser.invalid) {
+				logMessage('error', jsNumberParser.message, compilation);
+			}
+			if (cssNumberParser.invalid) {
+				logMessage('error', cssNumberParser.message, compilation);
+			}
+			const jsSize = jsNumberParser.parsedBytes;
+			const cssSize = cssNumberParser.parsedBytes;
 			if (
-				typeof restriction.jsSize === 'number' &&
-				restriction.jsSize < manifest[restriction.chunkName].js.size
+				!jsNumberParser.invalid &&
+				typeof jsSize === 'number' &&
+				jsSize < manifest[restriction.chunkName].js.size
 			) {
 				logMessage(
 					restriction.logType || defaultLogType,
-					`${
-						restriction.chunkName
-					} js chunk is exceeding the set threshold of ${
-						restriction.jsSize
-					} by ${formatSize(
-						manifest[restriction.chunkName].js.size - restriction.jsSize
-					)}`,
+					replaceMessagePlaceholder(
+						{
+							chunkName: restriction.chunkName,
+							ext: 'js',
+							totalSize: formatSize(manifest[restriction.chunkName].js.size),
+							difference: formatSize(
+								manifest[restriction.chunkName].js.size - jsSize
+							),
+							restriction: formatSize(jsSize)
+						},
+						restriction.logMessageFormat || defaultLogMessageFormat
+					),
 					compilation
 				);
 			}
+
 			if (
-				typeof restriction.cssSize === 'number' &&
-				restriction.cssSize < manifest[restriction.chunkName].css.size
+				!cssNumberParser.invalid &&
+				typeof cssSize === 'number' &&
+				cssSize < manifest[restriction.chunkName].css.size
 			) {
 				logMessage(
 					restriction.logType || defaultLogType,
-					`${
-						restriction.chunkName
-					} css chunk is exceeding the set threshold of ${
-						restriction.cssSize
-					} by ${formatSize(
-						manifest[restriction.chunkName].css.size - restriction.cssSize
-					)}`,
+					replaceMessagePlaceholder(
+						{
+							chunkName: restriction.chunkName,
+							ext: 'css',
+							totalSize: formatSize(manifest[restriction.chunkName].css.size),
+							difference: formatSize(
+								manifest[restriction.chunkName].css.size - cssSize
+							),
+							restriction: formatSize(cssSize)
+						},
+						restriction.logMessageFormat || defaultLogMessageFormat
+					),
 					compilation
 				);
 			}
@@ -65,9 +95,9 @@ class ChunkRestrictionPlugin {
 
 	apply(compiler) {
 		if ('hooks' in compiler) {
-			compiler.hooks.shouldEmit.tap('ChunkRestrictionPlugin', this.handleHook);
+			compiler.hooks.afterEmit.tap('ChunkRestrictionPlugin', this.handleHook);
 		} else {
-			compiler.plugin('should-emit', this.handleHook);
+			compiler.plugin('after-emit', this.handleHook);
 		}
 	}
 }
