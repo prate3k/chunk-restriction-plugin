@@ -35,60 +35,66 @@ class ChunkRestrictionPlugin {
 
 		const manifest = buildChunkStatsJson(compilation, assetsMeta);
 		restrictions.forEach((restriction) => {
-			const jsNumberParser = parseHumanReadableSizeToByte(restriction.jsSize);
-			const cssNumberParser = parseHumanReadableSizeToByte(restriction.cssSize);
-			if (jsNumberParser.invalid) {
-				logMessage('error', jsNumberParser.message, compilation);
-			}
-			if (cssNumberParser.invalid) {
-				logMessage('error', cssNumberParser.message, compilation);
-			}
-			const jsSize = jsNumberParser.parsedBytes;
-			const cssSize = cssNumberParser.parsedBytes;
-			if (
-				!jsNumberParser.invalid &&
-				typeof jsSize === 'number' &&
-				jsSize < manifest[restriction.chunkName].js.size
-			) {
-				logMessage(
-					restriction.logType || defaultLogType,
-					replaceMessagePlaceholder(
-						{
-							chunkName: restriction.chunkName,
-							ext: 'js',
-							totalSize: formatSize(manifest[restriction.chunkName].js.size),
-							difference: formatSize(
-								manifest[restriction.chunkName].js.size - jsSize
-							),
-							restriction: formatSize(jsSize)
-						},
-						restriction.logMessageFormat || defaultLogMessageFormat
-					),
-					compilation
-				);
+			if (typeof restriction.jsSize === 'string' && !!restriction.jsSize) {
+				const jsNumberParser = parseHumanReadableSizeToByte(restriction.jsSize);
+				const jsSize = jsNumberParser.parsedBytes;
+				if (jsNumberParser.invalid) {
+					logMessage('error', jsNumberParser.message, compilation);
+				}
+				if (
+					!jsNumberParser.invalid &&
+					typeof jsSize === 'number' &&
+					jsSize < manifest[restriction.chunkName].js.size
+				) {
+					logMessage(
+						restriction.logType || defaultLogType,
+						replaceMessagePlaceholder(
+							{
+								chunkName: restriction.chunkName,
+								ext: 'js',
+								totalSize: formatSize(manifest[restriction.chunkName].js.size),
+								difference: formatSize(
+									manifest[restriction.chunkName].js.size - jsSize
+								),
+								restriction: formatSize(jsSize)
+							},
+							restriction.logMessageFormat || defaultLogMessageFormat
+						),
+						compilation
+					);
+				}
 			}
 
-			if (
-				!cssNumberParser.invalid &&
-				typeof cssSize === 'number' &&
-				cssSize < manifest[restriction.chunkName].css.size
-			) {
-				logMessage(
-					restriction.logType || defaultLogType,
-					replaceMessagePlaceholder(
-						{
-							chunkName: restriction.chunkName,
-							ext: 'css',
-							totalSize: formatSize(manifest[restriction.chunkName].css.size),
-							difference: formatSize(
-								manifest[restriction.chunkName].css.size - cssSize
-							),
-							restriction: formatSize(cssSize)
-						},
-						restriction.logMessageFormat || defaultLogMessageFormat
-					),
-					compilation
+			if (typeof restriction.cssSize === 'string' && !!restriction.cssSize) {
+				const cssNumberParser = parseHumanReadableSizeToByte(
+					restriction.cssSize
 				);
+				const cssSize = cssNumberParser.parsedBytes;
+				if (cssNumberParser.invalid) {
+					logMessage('error', cssNumberParser.message, compilation);
+				}
+				if (
+					!cssNumberParser.invalid &&
+					typeof cssSize === 'number' &&
+					cssSize < manifest[restriction.chunkName].css.size
+				) {
+					logMessage(
+						restriction.logType || defaultLogType,
+						replaceMessagePlaceholder(
+							{
+								chunkName: restriction.chunkName,
+								ext: 'css',
+								totalSize: formatSize(manifest[restriction.chunkName].css.size),
+								difference: formatSize(
+									manifest[restriction.chunkName].css.size - cssSize
+								),
+								restriction: formatSize(cssSize)
+							},
+							restriction.logMessageFormat || defaultLogMessageFormat
+						),
+						compilation
+					);
+				}
 			}
 		});
 	}
