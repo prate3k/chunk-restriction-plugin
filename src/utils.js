@@ -12,14 +12,6 @@ export function formatSize(size) {
 	return `${+(size / 1024 ** index).toPrecision(3)} ${abbreviations[index]}`;
 }
 
-export function logMessage(type, msg, compilation) {
-	if (type === 'warning') {
-		compilation.warnings.push(msg);
-	} else {
-		compilation.errors.push(msg);
-	}
-}
-
 export function hasOwnProperty(object, property) {
 	return Object.prototype.hasOwnProperty.call(object, property);
 }
@@ -68,31 +60,31 @@ export function buildChunkStatsJson(compilation, assetsMeta) {
 	return chunkStats;
 }
 
-const regex = /([.0-9]+)[ ]?(Byte|Bytes|KiB|KB|MB|GB)/i;
-export function parseHumanReadableSizeToByte(text) {
+const regex = /^([.0-9]+)[ ]?(Byte|Bytes|KiB|KB|MB|GB)?$/i;
+function parseHumanReadableSizeToByte(text) {
 	const matches = regex.exec(text);
 	if (matches == null) {
 		return {
-			message: `Incorrect string specified : ${text}, Please check. Supported format {Byte, Bytes, Kb/Kib, Mb}`,
 			invalid: true,
 			parsedBytes: 0
 		};
 	}
 	const [_, number, unit] = matches; // eslint-disable-line no-unused-vars
 	let times = 0;
-	switch (unit.toLowerCase()) {
-		case 'kib':
-		case 'kb':
-			times = 1;
-			break;
-		case 'mb':
-			times = 2;
-			break;
-		default:
-			break;
+	if (unit) {
+		switch (unit.toLowerCase()) {
+			case 'kib':
+			case 'kb':
+				times = 1;
+				break;
+			case 'mb':
+				times = 2;
+				break;
+			default:
+				break;
+		}
 	}
 	return {
-		message: '',
 		invalid: false,
 		parsedBytes: 1024 ** times * Number(number)
 	};
@@ -105,9 +97,66 @@ export function replaceMessagePlaceholder(
 	messageFormat
 ) {
 	return (messageFormat || DEFAULT_MSG_FORMAT)
-		.replace(/__CHUNK_NAME__/g, chunkName)
-		.replace(/__EXT__/g, ext.toUpperCase())
-		.replace(/__TOTAL_SIZE__/g, totalSize)
-		.replace(/__RESTRICTION__/g, restriction)
-		.replace(/__DIFFERENCE__/g, difference);
+		.replace('__CHUNK_NAME__', chunkName)
+		.replace('__EXT__', ext.toUpperCase())
+		.replace('__TOTAL_SIZE__', totalSize)
+		.replace('__RESTRICTION__', restriction)
+		.replace('__DIFFERENCE__', difference);
+}
+
+export function performCheck({
+	property,
+	fileExt,
+	manifest,
+	restriction,
+	severity,
+	msgFormat,
+	messages
+}) {
+	if (typeof restriction[property] === 'string' && !!restriction[property]) {
+		const numberParser = parseHumanReadableSizeToByte(restriction[property]);
+		const size = numberParser.parsedBytes;
+		if (numberParser.invalid) {
+			messages.pushMessage(
+				'error',
+				`Incorrect string specified : ${restriction[property]} for chunkName "${restriction.chunkName}", Please check. Supported format {Byte, Bytes, Kb/Kib, Mb}`
+			);
+		}
+		if (
+			!numberParser.invalid &&
+			typeof size === 'number' &&
+			!hasOwnProperty(manifest[restriction.chunkName], fileExt)
+		) {
+			messages.pushMessage(
+				'warning',
+				`[Not Found] No ${fileExt.toUpperCase()} asset found for chunk name : "${
+					restriction.chunkName
+				}", hence ignoring its ${fileExt} restriction`
+			);
+			return;
+		}
+		if (
+			!numberParser.invalid &&
+			typeof size === 'number' &&
+			size < manifest[restriction.chunkName][fileExt].size
+		) {
+			messages.pushMessage(
+				severity,
+				replaceMessagePlaceholder(
+					{
+						chunkName: restriction.chunkName,
+						ext: fileExt,
+						totalSize: formatSize(
+							manifest[restriction.chunkName][fileExt].size
+						),
+						difference: formatSize(
+							manifest[restriction.chunkName][fileExt].size - size
+						),
+						restriction: formatSize(size)
+					},
+					msgFormat
+				)
+			);
+		}
+	}
 }

@@ -1,15 +1,32 @@
 import validateOptions from 'schema-utils';
 
-import {
-	formatSize,
-	logMessage,
-	hasOwnProperty,
-	buildChunkStatsJson,
-	parseHumanReadableSizeToByte,
-	replaceMessagePlaceholder
-} from './utils';
+import { hasOwnProperty, buildChunkStatsJson, performCheck } from './utils';
 
 import schema from './options.json';
+
+export class LogMessage {
+	constructor() {
+		this.warnings = '';
+		this.errors = '';
+	}
+	pushMessage(type, msg) {
+		if (type === 'warning') {
+			this.warnings += `- ${msg}\n\n`;
+		} else {
+			this.errors += `- ${msg}\n\n`;
+		}
+	}
+	logMessage(compilation) {
+		if (this.warnings && this.warnings.length > 0) {
+			compilation.warnings.push(
+				`Chunk Restriction Plugin => \n\n${this.warnings}`
+			);
+		}
+		if (this.errors && this.errors.length > 0) {
+			compilation.errors.push(`Chunk Restriction Plugin => \n\n${this.errors}`);
+		}
+	}
+}
 
 class ChunkRestrictionPlugin {
 	constructor(opts = {}) {
@@ -34,69 +51,33 @@ class ChunkRestrictionPlugin {
 		}
 
 		const manifest = buildChunkStatsJson(compilation, assetsMeta);
+		const messages = new LogMessage();
+		const restrictionParams = [
+			{ property: 'jsSize', fileExt: 'js' },
+			{ property: 'cssSize', fileExt: 'css' }
+		];
 		restrictions.forEach((restriction) => {
-			if (typeof restriction.jsSize === 'string' && !!restriction.jsSize) {
-				const jsNumberParser = parseHumanReadableSizeToByte(restriction.jsSize);
-				const jsSize = jsNumberParser.parsedBytes;
-				if (jsNumberParser.invalid) {
-					logMessage('error', jsNumberParser.message, compilation);
-				}
-				if (
-					!jsNumberParser.invalid &&
-					typeof jsSize === 'number' &&
-					jsSize < manifest[restriction.chunkName].js.size
-				) {
-					logMessage(
-						restriction.logType || defaultLogType,
-						replaceMessagePlaceholder(
-							{
-								chunkName: restriction.chunkName,
-								ext: 'js',
-								totalSize: formatSize(manifest[restriction.chunkName].js.size),
-								difference: formatSize(
-									manifest[restriction.chunkName].js.size - jsSize
-								),
-								restriction: formatSize(jsSize)
-							},
-							restriction.logMessageFormat || defaultLogMessageFormat
-						),
-						compilation
-					);
-				}
-			}
-
-			if (typeof restriction.cssSize === 'string' && !!restriction.cssSize) {
-				const cssNumberParser = parseHumanReadableSizeToByte(
-					restriction.cssSize
+			const severity = restriction.logType || defaultLogType;
+			if (!hasOwnProperty(manifest, restriction.chunkName)) {
+				messages.pushMessage(
+					severity,
+					`[Missing] No chunk with name : "${restriction.chunkName}" present, Either remove the restriction or check if correct chunk name is specified.`
 				);
-				const cssSize = cssNumberParser.parsedBytes;
-				if (cssNumberParser.invalid) {
-					logMessage('error', cssNumberParser.message, compilation);
-				}
-				if (
-					!cssNumberParser.invalid &&
-					typeof cssSize === 'number' &&
-					cssSize < manifest[restriction.chunkName].css.size
-				) {
-					logMessage(
-						restriction.logType || defaultLogType,
-						replaceMessagePlaceholder(
-							{
-								chunkName: restriction.chunkName,
-								ext: 'css',
-								totalSize: formatSize(manifest[restriction.chunkName].css.size),
-								difference: formatSize(
-									manifest[restriction.chunkName].css.size - cssSize
-								),
-								restriction: formatSize(cssSize)
-							},
-							restriction.logMessageFormat || defaultLogMessageFormat
-						),
-						compilation
-					);
-				}
+				return;
 			}
+			restrictionParams.forEach((restrictionParam) => {
+				performCheck({
+					property: restrictionParam.property,
+					fileExt: restrictionParam.fileExt,
+					manifest,
+					restriction,
+					severity,
+					messages,
+					msgFormat: restriction.logMessageFormat || defaultLogMessageFormat
+				});
+			});
 		});
+		messages.logMessage(compilation);
 	}
 
 	apply(compiler) {
