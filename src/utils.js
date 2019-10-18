@@ -71,18 +71,16 @@ function parseHumanReadableSizeToByte(text) {
 	}
 	const [_, number, unit] = matches; // eslint-disable-line no-unused-vars
 	let times = 0;
-	if (unit) {
-		switch (unit.toLowerCase()) {
-			case 'kib':
-			case 'kb':
-				times = 1;
-				break;
-			case 'mb':
-				times = 2;
-				break;
-			default:
-				break;
-		}
+	switch ((unit || '').toLowerCase()) {
+		case 'kib':
+		case 'kb':
+			times = 1;
+			break;
+		case 'mb':
+			times = 2;
+			break;
+		default:
+			break;
 	}
 	return {
 		invalid: false,
