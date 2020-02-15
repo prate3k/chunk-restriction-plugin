@@ -6,11 +6,9 @@
 			"type": "array",
 			"items": {
 				"description": "A restriction",
-				"anyOf": [
-					{
-						"$ref": "#/definitions/RestrictionSchema"
-					}
-				]
+				"anyOf": [{
+					"$ref": "#/definitions/RestrictionSchema"
+				}]
 			}
 		},
 		"RestrictionSchema": {
@@ -43,11 +41,9 @@
 	"properties": {
 		"restrictions": {
 			"description": "Match and execute these restrictions when its schema is matched",
-			"anyOf": [
-				{
-					"$ref": "#/definitions/RestrictionsSchema"
-				}
-			]
+			"anyOf": [{
+				"$ref": "#/definitions/RestrictionsSchema"
+			}]
 		},
 		"defaultLogType": {
 			"description": "Specify the default way to treat all the restriction checks",
@@ -56,6 +52,10 @@
 		"defaultLogMessageFormat": {
 			"description": "Used to customize log message format for all the restrictions",
 			"type": "string"
+		},
+		"enableInfoLogs": {
+			"description": "Used to log info of all the chunk(s) who met the restrictions defined",
+			"type": "boolean"
 		}
 	}
 }

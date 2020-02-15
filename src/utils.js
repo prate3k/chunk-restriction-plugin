@@ -1,5 +1,7 @@
 import path from 'path';
 
+import { SEVERITY_TYPES, REASONS } from './constants';
+
 export function formatSize(size) {
 	if (typeof size !== 'number' || Number.isNaN(size) === true) {
 		return 'unknown size';
@@ -16,53 +18,9 @@ export function hasOwnProperty(object, property) {
 	return Object.prototype.hasOwnProperty.call(object, property);
 }
 
-export function buildChunkStatsJson(compilation, assetsMeta) {
-	const chunkStats = {};
-	compilation.chunks.forEach((chunk) => {
-		if (!chunk.name) {
-			return;
-		}
-		chunkStats[chunk.name] = {};
-		for (let i = 0, len = chunk.files.length; i < len; i++) {
-			switch (path.extname(chunk.files[i])) {
-				case '.css':
-				case '.scss':
-					chunkStats[chunk.name].css = { file: chunk.files[i] };
-					break;
-				case '.js':
-					chunkStats[chunk.name].js = { file: chunk.files[i] };
-					break;
-				default:
-					break;
-			}
-		}
-	});
-	for (const chunkName in chunkStats) {
-		if (hasOwnProperty(chunkStats, chunkName)) {
-			if (
-				!!chunkStats[chunkName].css &&
-				chunkStats[chunkName].css.file &&
-				hasOwnProperty(assetsMeta, chunkStats[chunkName].css.file)
-			) {
-				chunkStats[chunkName].css.size =
-					assetsMeta[chunkStats[chunkName].css.file].size;
-			}
-			if (
-				!!chunkStats[chunkName].js &&
-				chunkStats[chunkName].js.file &&
-				hasOwnProperty(assetsMeta, chunkStats[chunkName].js.file)
-			) {
-				chunkStats[chunkName].js.size =
-					assetsMeta[chunkStats[chunkName].js.file].size;
-			}
-		}
-	}
-	return chunkStats;
-}
-
 const regex = /^([.0-9]+)[ ]?(Byte|Bytes|KiB|KB|MB|GB)?$/i;
 function parseHumanReadableSizeToByte(text) {
-	const matches = regex.exec(text);
+	const matches = text ? regex.exec(text) : null;
 	if (matches == null) {
 		return {
 			invalid: true,
@@ -102,59 +60,113 @@ export function replaceMessagePlaceholder(
 		.replace('__DIFFERENCE__', difference);
 }
 
-export function performCheck({
-	property,
-	fileExt,
-	manifest,
-	restriction,
-	severity,
-	msgFormat,
-	messages
-}) {
-	if (typeof restriction[property] === 'string' && !!restriction[property]) {
-		const numberParser = parseHumanReadableSizeToByte(restriction[property]);
-		const size = numberParser.parsedBytes;
-		if (numberParser.invalid) {
-			messages.pushMessage(
-				'error',
-				`Incorrect string specified : ${restriction[property]} for chunkName "${restriction.chunkName}", Please check. Supported format {Byte, Bytes, Kb/Kib, Mb}`
-			);
-		}
-		if (
-			!numberParser.invalid &&
-			typeof size === 'number' &&
-			!hasOwnProperty(manifest[restriction.chunkName], fileExt)
-		) {
-			messages.pushMessage(
-				'warning',
-				`[Not Found] No ${fileExt.toUpperCase()} asset found for chunk name : "${
-					restriction.chunkName
-				}", hence ignoring its ${fileExt} restriction`
-			);
-			return;
-		}
-		if (
-			!numberParser.invalid &&
-			typeof size === 'number' &&
-			size < manifest[restriction.chunkName][fileExt].size
-		) {
-			messages.pushMessage(
-				severity,
-				replaceMessagePlaceholder(
-					{
-						chunkName: restriction.chunkName,
-						ext: fileExt,
-						totalSize: formatSize(
-							manifest[restriction.chunkName][fileExt].size
-						),
-						difference: formatSize(
-							manifest[restriction.chunkName][fileExt].size - size
-						),
-						restriction: formatSize(size)
-					},
-					msgFormat
-				)
-			);
-		}
+function isExceedingSetLimit({ limit, actualSize }) {
+	const numberParser = parseHumanReadableSizeToByte(limit);
+	const restrictedToSize = numberParser.parsedBytes;
+	if (numberParser.invalid || typeof restrictedToSize !== 'number') {
+		return {
+			type: REASONS.INVALID_STRING
+		};
 	}
+	if (restrictedToSize < actualSize) {
+		return {
+			type: REASONS.EXCEEDS_LIMIT,
+			difference: formatSize(actualSize - restrictedToSize)
+		};
+	}
+	return {
+		type: REASONS.WITHIN_LIMIT,
+		difference: formatSize(restrictedToSize - actualSize)
+	};
+}
+
+export function processChunkStats(
+	compilation,
+	{ restrictions, defaultLogType, defaultLogMessageFormat }
+) {
+	const restrictionStats = {
+		messages: []
+	};
+	if (!restrictions || !restrictions.length) {
+		return restrictionStats;
+	}
+
+	restrictions.forEach((restriction) => {
+		const { chunkName, logType, logMessageFormat } = restriction;
+		const severity = logType || defaultLogType || SEVERITY_TYPES.WARNING;
+		const msgFormat = logMessageFormat || defaultLogMessageFormat;
+
+		/* Checking to see if chunk name is present in final assets */
+		if (compilation.namedChunks.get(chunkName)) {
+			const chunk = compilation.namedChunks.get(chunkName);
+			restrictionStats[chunkName] = {};
+
+			const hasAssets = {
+				js: false,
+				css: false
+			};
+
+			// Iterating over chunk files and collecting stats of file with css/js extension
+			chunk.files.forEach((file) => {
+				const size = compilation.assets[file].size();
+				let fileType = '';
+				const fileExt = path.extname(file);
+				if (fileExt === '.css' || fileExt === '.scss') {
+					fileType = 'css';
+				} else if (fileExt === '.js') {
+					fileType = 'js';
+				}
+
+				if (fileType === 'js' || fileType === 'css') {
+					hasAssets[fileType] = true;
+					const sizeProp = fileType === 'js' ? 'jsSize' : 'cssSize';
+					if (typeof restriction[sizeProp] === 'undefined') {
+						return;
+					}
+					restrictionStats[chunkName][fileType] = {
+						file,
+						size,
+						limit: restriction[sizeProp]
+					};
+					const reason = isExceedingSetLimit({
+						limit: restriction[sizeProp],
+						actualSize: size
+					});
+
+					restrictionStats.messages.push({
+						type: reason.type,
+						chunkName,
+						file,
+						fileType,
+						severity,
+						msgFormat,
+						size: formatSize(size),
+						difference: reason.difference,
+						limit: restriction[sizeProp]
+					});
+				}
+			});
+			if (!hasAssets.js || !hasAssets.css) {
+				let missingFileType;
+				if (!hasAssets.js) {
+					missingFileType = 'js';
+				} else if (!hasAssets.css) {
+					missingFileType = 'css';
+				}
+				restrictionStats.messages.push({
+					type: REASONS.MISSING,
+					chunkName,
+					fileType: missingFileType,
+					severity: SEVERITY_TYPES.WARNING
+				});
+			}
+		} else {
+			restrictionStats.messages.push({
+				type: REASONS.MISSING,
+				severity: SEVERITY_TYPES.WARNING,
+				chunkName
+			});
+		}
+	});
+	return restrictionStats;
 }

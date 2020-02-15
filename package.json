@@ -2,7 +2,7 @@
   "name": "chunk-restriction-plugin",
   "version": "1.0.1",
   "description": "Chunk restriction plugin for webpack",
-  "main": "dist/cjs.js",
+  "main": "dist/index.js",
   "engines": {
     "node": ">= 6.9.0"
   },
