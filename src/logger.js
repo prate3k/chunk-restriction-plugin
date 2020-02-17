@@ -1,5 +1,6 @@
 import { SEVERITY_TYPES, REASONS } from './constants';
 
+const spaces = '   ';
 export default class Logger {
 	constructor(pluginName) {
 		this.pluginName = pluginName;
@@ -23,83 +24,112 @@ export default class Logger {
 		if (message.type === REASONS.EXCEEDS_LIMIT) {
 			this.record(
 				message.severity,
-				`💀 [FAILED] Chunk's asset exceeds the defined limit : ${
-					message.file
-				}\n${[
-					`  Chunk Name: ${message.chunkName}`,
-					`  Asset type: "${message.fileType}`,
-					`  Defined Restriction: ${message.limit}`,
-					`  Current Size: ${message.size}`,
-					`  Exceeds by: ${message.difference}`
+				`💀 [FAILED] Chunk's asset exceeds the defined limit of "${
+					message.limit
+				}" : ${message.file}\n${[
+					`${spaces}Chunk Name\t: ${message.chunkName}`,
+					`${spaces}Asset type\t: "${message.fileType}"`,
+					`${spaces}Current Size\t: ${message.size}`,
+					`${spaces}Exceeds by\t: + ${message.difference}`
 				].join('\n')}\n`
 			);
-		} else if (message.type === REASONS.INVALID_STRING) {
+		} else if (message.type === REASONS.INVALID_ASSET_SIZE) {
 			this.record(
 				SEVERITY_TYPES.ERROR,
 				`🚫 [INVALID] Incorrect string specified in restriction : ${
 					message.file
 				}\n${[
-					`  Chunk Name: ${message.chunkName}`,
-					`  Asset Type: "${message.fileType}"`,
-					`  Incorrect string: "${message.limit}"`
+					`${spaces}Chunk Name\t: ${message.chunkName}`,
+					`${spaces}Asset Type\t: "${message.fileType}"`,
+					`${spaces}Invalid string\t: "${message.limit}"`
+				].join('\n')}\n`
+			);
+		} else if (message.type === REASONS.INVALID_DELTA_SIZE) {
+			this.record(
+				SEVERITY_TYPES.WARNING,
+				`🚫 [INVALID] Incorrect string specified for property "safeDifferenceInSizes"\n${[
+					`${spaces}Invalid string\t: "${message.limit}"`
+				].join('\n')}\n`
+			);
+		} else if (message.type === REASONS.WARN_ON_DELTA_LIMIT) {
+			this.record(
+				SEVERITY_TYPES.WARNING,
+				`😱 [CAUTION] Chunk's asset size about to reach its set limit of "${
+					message.limit
+				}" : ${message.file}\n${[
+					`${spaces}Chunk Name\t: ${message.chunkName}`,
+					`${spaces}Asset type\t: "${message.fileType}"`,
+					`${spaces}Current Size\t: ${message.size}`,
+					`${spaces}Short by\t: ${message.difference}`
 				].join('\n')}\n`
 			);
 		} else if (message.type === REASONS.MISSING) {
 			if (typeof message.fileType === 'undefined') {
 				this.record(
 					SEVERITY_TYPES.WARNING,
-					`🙁 [NOT FOUND] Chunk not found, ignoring restriction\n  Chunk Name: ${message.chunkName}`
+					`🙁 [NOT FOUND] Chunk not found, hence ignoring restriction\n${spaces}Chunk Name\t: ${message.chunkName}`
 				);
 			} else {
 				this.record(
 					message.severity,
 					`🙁 [NOT FOUND] Chunk's asset not found\n${[
-						`  Chunk Name: ${message.chunkName}`,
-						`  Asset type: "${message.fileType}"`
+						`${spaces}Chunk Name\t: ${message.chunkName}`,
+						`${spaces}Asset type\t: "${message.fileType}"`
 					].join('\n')}\n`
 				);
 			}
 		} else if (message.type === REASONS.WITHIN_LIMIT) {
 			this.record(
 				SEVERITY_TYPES.INFO,
-				`👌🏻 [OK] Chunk's asset is within the defined limit : ${
-					message.file
-				}\n${[
-					`  Chunk Name: ${message.chunkName}`,
-					`  Asset type: "${message.fileType}"`,
-					`  Defined Restriction: ${message.limit}`,
-					`  Current Size: ${message.size}`,
-					`  Short by: ${message.difference}`
+				`👌🏻 [OK] Chunk's asset is within the defined limit (i.e. ${
+					message.limit
+				}) : ${message.file}\n${[
+					`${spaces}Chunk Name\t: ${message.chunkName}`,
+					`${spaces}Asset type\t: "${message.fileType}"`,
+					`${spaces}Current Size\t: ${message.size}`,
+					`${spaces}Difference\t: ${message.difference}`
 				].join('\n')}\n`
 			);
 		}
 	}
 
-	getErrors() {
-		return this.errors.length > 0
-			? `ERROR in Chunk Restriction Plugin 😵, Chunk(s) does not meet the restrictions defined or there is some issue with the configuration, refer below error(s) for more information\n${this.errors.join(
-					'\n\n'
-			  )}\n`
-			: '';
-	}
-
-	log(compilation, enableInfoLogs) {
-		if (this.warnings && this.warnings.length > 0) {
-			compilation.warnings.push(
-				`Chunk restriction plugin, check the following instructions:\n${this.warnings.join(
-					'\n\n'
-				)}\n`
-			);
-		}
-		if (enableInfoLogs && this.infos && this.infos.length > 0) {
+	logInfoMessages(compilation) {
+		if (this.infos && this.infos.length > 0) {
 			(compilation.getLogger
 				? compilation.getLogger(this.pluginName)
 				: console
-			).info(
-				`\nINFO for Chunk restriction plugin, chunk(s) whose size is within the restriction 🤩\n${this.infos.join(
-					'\n\n'
+			).log(
+				`\nINFO for Chunk restriction plugin 🤩, chunk(s) whose size is within the restriction\n${this.infos.join(
+					'\n'
 				)}\n`
 			);
+		}
+	}
+
+	hasErrors() {
+		return this.errors && this.errors.length > 0;
+	}
+
+	getErrors() {
+		if (this.hasErrors()) {
+			return `\nERROR in Chunk Restriction Plugin ¯\\_(ツ)_/¯, Chunk(s) does not meet the restrictions defined or there is some issue with the configuration, check below error(s) for more details:\n${this.errors.join(
+				'\n'
+			)}\n`;
+		}
+		return '';
+	}
+
+	log(compilation) {
+		if (this.warnings && this.warnings.length > 0) {
+			compilation.warnings.push(
+				`Chunk Restriction Plugin (◕_◕), check the following instructions:\n${this.warnings.join(
+					'\n'
+				)}\n`
+			);
+		}
+		const errors = this.getErrors();
+		if (errors) {
+			compilation.errors.push(errors);
 		}
 	}
 }

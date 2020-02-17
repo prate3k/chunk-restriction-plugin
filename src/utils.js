@@ -1,6 +1,15 @@
 import path from 'path';
 
+import validate from 'schema-utils';
+import ValidationError from 'schema-utils/dist/ValidationError';
+
+import schema from './options.json';
+
 import { SEVERITY_TYPES, REASONS } from './constants';
+
+export function hasOwnProperty(object, property) {
+	return Object.prototype.hasOwnProperty.call(object, property);
+}
 
 export function formatSize(size) {
 	if (typeof size !== 'number' || Number.isNaN(size) === true) {
@@ -12,10 +21,6 @@ export function formatSize(size) {
 	const abbreviations = ['bytes', 'KiB', 'MiB', 'GiB'];
 	const index = Math.floor(Math.log(size) / Math.log(1024));
 	return `${+(size / 1024 ** index).toPrecision(3)} ${abbreviations[index]}`;
-}
-
-export function hasOwnProperty(object, property) {
-	return Object.prototype.hasOwnProperty.call(object, property);
 }
 
 const regex = /^([.0-9]+)[ ]?(Byte|Bytes|KiB|KB|MB|GB)?$/i;
@@ -46,32 +51,24 @@ function parseHumanReadableSizeToByte(text) {
 	};
 }
 
-const DEFAULT_MSG_FORMAT =
-	'__CHUNK_NAME__ __EXT__ chunk (size: __TOTAL_SIZE__) is exceeding the set threshold of __RESTRICTION__ by __DIFFERENCE__';
-export function replaceMessagePlaceholder(
-	{ chunkName, ext, totalSize, restriction, difference },
-	messageFormat
-) {
-	return (messageFormat || DEFAULT_MSG_FORMAT)
-		.replace('__CHUNK_NAME__', chunkName)
-		.replace('__EXT__', ext.toUpperCase())
-		.replace('__TOTAL_SIZE__', totalSize)
-		.replace('__RESTRICTION__', restriction)
-		.replace('__DIFFERENCE__', difference);
-}
-
-function isExceedingSetLimit({ limit, actualSize }) {
+function checkForChunkSizeLimit({ limit, actualSize, deltaInSizes }) {
 	const numberParser = parseHumanReadableSizeToByte(limit);
 	const restrictedToSize = numberParser.parsedBytes;
 	if (numberParser.invalid || typeof restrictedToSize !== 'number') {
 		return {
-			type: REASONS.INVALID_STRING
+			type: REASONS.INVALID_ASSET_SIZE
 		};
 	}
 	if (restrictedToSize < actualSize) {
 		return {
 			type: REASONS.EXCEEDS_LIMIT,
 			difference: formatSize(actualSize - restrictedToSize)
+		};
+	}
+	if (deltaInSizes && restrictedToSize - actualSize <= deltaInSizes) {
+		return {
+			type: REASONS.WARN_ON_DELTA_LIMIT,
+			difference: formatSize(restrictedToSize - actualSize)
 		};
 	}
 	return {
@@ -82,13 +79,27 @@ function isExceedingSetLimit({ limit, actualSize }) {
 
 export function processChunkStats(
 	compilation,
-	{ restrictions, defaultLogType, defaultLogMessageFormat }
+	{ safeSizeDifference, restrictions, defaultLogType, defaultLogMessageFormat }
 ) {
 	const restrictionStats = {
-		messages: []
+		messages: [],
+		chunks: {}
 	};
 	if (!restrictions || !restrictions.length) {
 		return restrictionStats;
+	}
+
+	let delta;
+	if (safeSizeDifference) {
+		const deltaInSizesParser = parseHumanReadableSizeToByte(safeSizeDifference);
+		delta = deltaInSizesParser.parsedBytes;
+		if (deltaInSizesParser.invalid || typeof delta !== 'number') {
+			restrictionStats.messages.push({
+				type: REASONS.INVALID_DELTA_SIZE,
+				severity: SEVERITY_TYPES.WARNING,
+				limit: safeSizeDifference
+			});
+		}
 	}
 
 	restrictions.forEach((restriction) => {
@@ -99,7 +110,7 @@ export function processChunkStats(
 		/* Checking to see if chunk name is present in final assets */
 		if (compilation.namedChunks.get(chunkName)) {
 			const chunk = compilation.namedChunks.get(chunkName);
-			restrictionStats[chunkName] = {};
+			const chunkAssets = {};
 
 			const hasAssets = {
 				js: false,
@@ -118,19 +129,23 @@ export function processChunkStats(
 				}
 
 				if (fileType === 'js' || fileType === 'css') {
-					hasAssets[fileType] = true;
 					const sizeProp = fileType === 'js' ? 'jsSize' : 'cssSize';
-					if (typeof restriction[sizeProp] === 'undefined') {
+					if (
+						!hasOwnProperty(restriction, sizeProp) ||
+						!restriction[sizeProp]
+					) {
 						return;
 					}
-					restrictionStats[chunkName][fileType] = {
+					hasAssets[fileType] = true;
+					chunkAssets[fileType] = {
 						file,
 						size,
 						limit: restriction[sizeProp]
 					};
-					const reason = isExceedingSetLimit({
+					const reason = checkForChunkSizeLimit({
 						limit: restriction[sizeProp],
-						actualSize: size
+						actualSize: size,
+						deltaInSizes: delta
 					});
 
 					restrictionStats.messages.push({
@@ -148,17 +163,22 @@ export function processChunkStats(
 			});
 			if (!hasAssets.js || !hasAssets.css) {
 				let missingFileType;
-				if (!hasAssets.js) {
+				if (!hasAssets.js && !!restriction.jsSize) {
 					missingFileType = 'js';
-				} else if (!hasAssets.css) {
+				} else if (!hasAssets.css && !!restriction.cssSize) {
 					missingFileType = 'css';
 				}
-				restrictionStats.messages.push({
-					type: REASONS.MISSING,
-					chunkName,
-					fileType: missingFileType,
-					severity: SEVERITY_TYPES.WARNING
-				});
+				if (missingFileType) {
+					restrictionStats.messages.push({
+						type: REASONS.MISSING,
+						chunkName,
+						fileType: missingFileType,
+						severity: SEVERITY_TYPES.WARNING
+					});
+				}
+			}
+			if (hasAssets.js || hasAssets.css) {
+				restrictionStats.chunks[chunkName] = chunkAssets;
 			}
 		} else {
 			restrictionStats.messages.push({
@@ -169,4 +189,45 @@ export function processChunkStats(
 		}
 	});
 	return restrictionStats;
+}
+
+export function validateOptions(opts) {
+	if (!opts) {
+		throw new ValidationError(
+			[
+				{
+					dataPath: '',
+					keyword: 'type',
+					params: {
+						type: 'object'
+					},
+					parentSchema: {
+						type: 'null',
+						description: 'Invalid configuration supplied'
+					}
+				}
+			],
+			schema
+		);
+	} else if (!opts.restrictions) {
+		throw new ValidationError(
+			[
+				{
+					dataPath: '',
+					keyword: 'required',
+					params: {
+						type: 'object',
+						missingProperty: 'restrictions'
+					},
+					parentSchema: {
+						type: 'null',
+						description: 'Property "restrictions" can not be blank'
+					}
+				}
+			],
+			schema
+		);
+	} else {
+		validate(schema, opts, 'Chunk Restriction Plugin');
+	}
 }
