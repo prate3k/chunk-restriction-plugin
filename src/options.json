@@ -6,9 +6,11 @@
 			"type": "array",
 			"items": {
 				"description": "A restriction",
-				"anyOf": [{
-					"$ref": "#/definitions/RestrictionSchema"
-				}]
+				"anyOf": [
+					{
+						"$ref": "#/definitions/RestrictionSchema"
+					}
+				]
 			}
 		},
 		"RestrictionSchema": {
@@ -37,9 +39,11 @@
 	"properties": {
 		"restrictions": {
 			"description": "Match and execute these restrictions when its schema is matched",
-			"anyOf": [{
-				"$ref": "#/definitions/RestrictionsSchema"
-			}]
+			"anyOf": [
+				{
+					"$ref": "#/definitions/RestrictionsSchema"
+				}
+			]
 		},
 		"defaultLogType": {
 			"description": "Specify the default way to treat all the restriction checks",

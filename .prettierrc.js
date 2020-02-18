@@ -3,5 +3,6 @@ module.exports = {
 	trailingComma: 'es5',
 	arrowParens: 'always',
 	useTabs: true,
+	endOfLine: 'lf',
 	trailingComma: 'none'
 };

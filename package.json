@@ -10,13 +10,14 @@
     "dist"
   ],
   "scripts": {
+    "test": "jest --config jest.config.json",
     "lint:prettier": "prettier \"{**/*,*}.{js,json}\" --list-different",
     "lint:js": "eslint --cache src",
     "lint": "npm run lint:js && npm run lint:prettier",
     "clean": "rm -r dist",
     "precommit": "lint-staged",
-    "build": "cross-env NODE_ENV=production babel src -d dist --ignore \"src/**/*.test.js\" --copy-files",
-    "prepublishOnly": "npm run lint && npm run build"
+    "build": "cross-env NODE_ENV=production babel src --out-dir dist --ignore \"**/*.test.js\"",
+    "prepublishOnly": "npm run lint && npm run test && npm run clean && npm run build"
   },
   "lint-staged": {
     "*.js": [
@@ -51,6 +52,7 @@
     "eslint": "6.4.0",
     "eslint-config-prettier": "6.3.0",
     "eslint-plugin-import": "2.18.2",
+    "jest": "25.1.0",
     "lint-staged": "3.4.0",
     "prettier": "1.18.2"
   },

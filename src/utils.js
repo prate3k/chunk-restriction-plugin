@@ -23,8 +23,8 @@ export function formatSize(size) {
 	return `${+(size / 1024 ** index).toPrecision(3)} ${abbreviations[index]}`;
 }
 
-const regex = /^([.0-9]+)[ ]?(Byte|Bytes|KiB|KB|MB|GB)?$/i;
-function parseHumanReadableSizeToByte(text) {
+const regex = /^([.0-9]+)[ ]?(Byte|Bytes|KiB|KB|MiB|MB|GiB|GB)?$/i;
+export function parseHumanReadableSizeToByte(text) {
 	const matches = text ? regex.exec(text) : null;
 	if (matches == null) {
 		return {
@@ -39,8 +39,13 @@ function parseHumanReadableSizeToByte(text) {
 		case 'kb':
 			times = 1;
 			break;
+		case 'mib':
 		case 'mb':
 			times = 2;
+			break;
+		case 'gib':
+		case 'gb':
+			times = 3;
 			break;
 		default:
 			break;
@@ -51,7 +56,7 @@ function parseHumanReadableSizeToByte(text) {
 	};
 }
 
-function checkForChunkSizeLimit({ limit, actualSize, deltaInSizes }) {
+export function checkForChunkSizeLimit({ limit, actualSize, deltaInSizes }) {
 	const numberParser = parseHumanReadableSizeToByte(limit);
 	const restrictedToSize = numberParser.parsedBytes;
 	if (numberParser.invalid || typeof restrictedToSize !== 'number') {
@@ -79,7 +84,7 @@ function checkForChunkSizeLimit({ limit, actualSize, deltaInSizes }) {
 
 export function processChunkStats(
 	compilation,
-	{ safeSizeDifference, restrictions, defaultLogType, defaultLogMessageFormat }
+	{ safeSizeDifference, restrictions, defaultLogType }
 ) {
 	const restrictionStats = {
 		messages: [],
@@ -103,9 +108,8 @@ export function processChunkStats(
 	}
 
 	restrictions.forEach((restriction) => {
-		const { chunkName, logType, logMessageFormat } = restriction;
+		const { chunkName, logType } = restriction;
 		const severity = logType || defaultLogType || SEVERITY_TYPES.WARNING;
-		const msgFormat = logMessageFormat || defaultLogMessageFormat;
 
 		/* Checking to see if chunk name is present in final assets */
 		if (compilation.namedChunks.get(chunkName)) {
@@ -154,7 +158,6 @@ export function processChunkStats(
 						file,
 						fileType,
 						severity,
-						msgFormat,
 						size: formatSize(size),
 						difference: reason.difference,
 						limit: restriction[sizeProp]

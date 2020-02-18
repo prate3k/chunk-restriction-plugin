@@ -1,0 +1,4 @@
+{
+	"modulePaths": ["<rootDir>/src/__tests__"],
+	"moduleFileExtensions": ["js"]
+}
