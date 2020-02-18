@@ -116,6 +116,7 @@ export function processChunkStats(
 			const chunk = compilation.namedChunks.get(chunkName);
 			const chunkAssets = {};
 
+			// used to check which assets are present & which are not
 			const hasAssets = {
 				js: false,
 				css: false
@@ -123,6 +124,7 @@ export function processChunkStats(
 
 			// Iterating over chunk files and collecting stats of file with css/js extension
 			chunk.files.forEach((file) => {
+				// get the file size from assets array
 				const size = compilation.assets[file].size();
 				let fileType = '';
 				const fileExt = path.extname(file);
@@ -138,6 +140,7 @@ export function processChunkStats(
 						!hasOwnProperty(restriction, sizeProp) ||
 						!restriction[sizeProp]
 					) {
+						// exit if 'jsSize' or 'cssSize' is not specified for 'js' and 'css' file respectively
 						return;
 					}
 					hasAssets[fileType] = true;
@@ -146,6 +149,7 @@ export function processChunkStats(
 						size,
 						limit: restriction[sizeProp]
 					};
+					// check the restriction against the asset's size
 					const reason = checkForChunkSizeLimit({
 						limit: restriction[sizeProp],
 						actualSize: size,
