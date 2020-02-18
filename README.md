@@ -23,7 +23,7 @@ To begin, you'll need to install `chunk-restriction-plugin`:
 npm install --save chunk-restriction-plugin
 ```
 
-Then add the loader to your `webpack` config. For example:
+Then add the plugin to your `webpack` config. For example:
 
 **webpack.config.js**
 
@@ -67,9 +67,9 @@ Default: `null`
 
 Allows to define restrictions on multiple chunks based on its chunk name.
 
-Each restriction's object shape:
+Each restriction's object shape consists of:
 
-|      Param      |    Type    | Description                                                                                                                      |
+|    Property     |    Type    | Description                                                                                                                      |
 | :-------------: | :--------: | :------------------------------------------------------------------------------------------------------------------------------- |
 | **`chunkName`** | `{String}` | Allows to define chunk name                                                                                                      |
 |  **`jsSize`**   | `{String}` | Allows to define restriction on its JS asset. <br/> (in `Bytes/KiB/MiB`)                                                         | . |
