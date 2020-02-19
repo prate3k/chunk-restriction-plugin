@@ -1,5 +1,16 @@
 import path from 'path';
 
+import validate from 'schema-utils';
+import ValidationError from 'schema-utils/dist/ValidationError';
+
+import schema from './schema.json';
+
+import { SEVERITY_TYPES, REASONS } from './constants';
+
+export function hasOwnProperty(object, property) {
+	return Object.prototype.hasOwnProperty.call(object, property);
+}
+
 export function formatSize(size) {
 	if (typeof size !== 'number' || Number.isNaN(size) === true) {
 		return 'unknown size';
@@ -12,57 +23,9 @@ export function formatSize(size) {
 	return `${+(size / 1024 ** index).toPrecision(3)} ${abbreviations[index]}`;
 }
 
-export function hasOwnProperty(object, property) {
-	return Object.prototype.hasOwnProperty.call(object, property);
-}
-
-export function buildChunkStatsJson(compilation, assetsMeta) {
-	const chunkStats = {};
-	compilation.chunks.forEach((chunk) => {
-		if (!chunk.name) {
-			return;
-		}
-		chunkStats[chunk.name] = {};
-		for (let i = 0, len = chunk.files.length; i < len; i++) {
-			switch (path.extname(chunk.files[i])) {
-				case '.css':
-				case '.scss':
-					chunkStats[chunk.name].css = { file: chunk.files[i] };
-					break;
-				case '.js':
-					chunkStats[chunk.name].js = { file: chunk.files[i] };
-					break;
-				default:
-					break;
-			}
-		}
-	});
-	for (const chunkName in chunkStats) {
-		if (hasOwnProperty(chunkStats, chunkName)) {
-			if (
-				!!chunkStats[chunkName].css &&
-				chunkStats[chunkName].css.file &&
-				hasOwnProperty(assetsMeta, chunkStats[chunkName].css.file)
-			) {
-				chunkStats[chunkName].css.size =
-					assetsMeta[chunkStats[chunkName].css.file].size;
-			}
-			if (
-				!!chunkStats[chunkName].js &&
-				chunkStats[chunkName].js.file &&
-				hasOwnProperty(assetsMeta, chunkStats[chunkName].js.file)
-			) {
-				chunkStats[chunkName].js.size =
-					assetsMeta[chunkStats[chunkName].js.file].size;
-			}
-		}
-	}
-	return chunkStats;
-}
-
-const regex = /^([.0-9]+)[ ]?(Byte|Bytes|KiB|KB|MB|GB)?$/i;
-function parseHumanReadableSizeToByte(text) {
-	const matches = regex.exec(text);
+const regex = /^([.0-9]+)[ ]?(Byte|Bytes|KiB|KB|MiB|MB|GiB|GB)?$/i;
+export function parseHumanReadableSizeToByte(text) {
+	const matches = text ? regex.exec(text) : null;
 	if (matches == null) {
 		return {
 			invalid: true,
@@ -76,8 +39,13 @@ function parseHumanReadableSizeToByte(text) {
 		case 'kb':
 			times = 1;
 			break;
+		case 'mib':
 		case 'mb':
 			times = 2;
+			break;
+		case 'gib':
+		case 'gb':
+			times = 3;
 			break;
 		default:
 			break;
@@ -88,73 +56,185 @@ function parseHumanReadableSizeToByte(text) {
 	};
 }
 
-const DEFAULT_MSG_FORMAT =
-	'__CHUNK_NAME__ __EXT__ chunk (size: __TOTAL_SIZE__) is exceeding the set threshold of __RESTRICTION__ by __DIFFERENCE__';
-export function replaceMessagePlaceholder(
-	{ chunkName, ext, totalSize, restriction, difference },
-	messageFormat
-) {
-	return (messageFormat || DEFAULT_MSG_FORMAT)
-		.replace('__CHUNK_NAME__', chunkName)
-		.replace('__EXT__', ext.toUpperCase())
-		.replace('__TOTAL_SIZE__', totalSize)
-		.replace('__RESTRICTION__', restriction)
-		.replace('__DIFFERENCE__', difference);
+export function checkForChunkSizeLimit({ limit, actualSize, deltaInSizes }) {
+	const numberParser = parseHumanReadableSizeToByte(limit);
+	const restrictedToSize = numberParser.parsedBytes;
+	if (numberParser.invalid || typeof restrictedToSize !== 'number') {
+		return {
+			type: REASONS.INVALID_ASSET_SIZE
+		};
+	}
+	if (restrictedToSize < actualSize) {
+		return {
+			type: REASONS.EXCEEDS_LIMIT,
+			difference: formatSize(actualSize - restrictedToSize)
+		};
+	}
+	if (deltaInSizes && restrictedToSize - actualSize <= deltaInSizes) {
+		return {
+			type: REASONS.WARN_ON_DELTA_LIMIT,
+			difference: formatSize(restrictedToSize - actualSize)
+		};
+	}
+	return {
+		type: REASONS.WITHIN_LIMIT,
+		difference: formatSize(restrictedToSize - actualSize)
+	};
 }
 
-export function performCheck({
-	property,
-	fileExt,
-	manifest,
-	restriction,
-	severity,
-	msgFormat,
-	messages
-}) {
-	if (typeof restriction[property] === 'string' && !!restriction[property]) {
-		const numberParser = parseHumanReadableSizeToByte(restriction[property]);
-		const size = numberParser.parsedBytes;
-		if (numberParser.invalid) {
-			messages.pushMessage(
-				'error',
-				`Incorrect string specified : ${restriction[property]} for chunkName "${restriction.chunkName}", Please check. Supported format {Byte, Bytes, Kb/Kib, Mb}`
-			);
+export function processChunkStats(
+	compilation,
+	{ safeSizeDifference, restrictions, defaultLogType }
+) {
+	const restrictionStats = {
+		messages: [],
+		chunks: {}
+	};
+	if (!restrictions || !restrictions.length) {
+		return restrictionStats;
+	}
+
+	let delta;
+	if (safeSizeDifference) {
+		const deltaInSizesParser = parseHumanReadableSizeToByte(safeSizeDifference);
+		delta = deltaInSizesParser.parsedBytes;
+		if (deltaInSizesParser.invalid || typeof delta !== 'number') {
+			restrictionStats.messages.push({
+				type: REASONS.INVALID_DELTA_SIZE,
+				severity: SEVERITY_TYPES.WARNING,
+				limit: safeSizeDifference
+			});
 		}
-		if (
-			!numberParser.invalid &&
-			typeof size === 'number' &&
-			!hasOwnProperty(manifest[restriction.chunkName], fileExt)
-		) {
-			messages.pushMessage(
-				'warning',
-				`[Not Found] No ${fileExt.toUpperCase()} asset found for chunk name : "${
-					restriction.chunkName
-				}", hence ignoring its ${fileExt} restriction`
-			);
-			return;
+	}
+
+	restrictions.forEach((restriction) => {
+		const { chunkName, logType } = restriction;
+		const severity = logType || defaultLogType || SEVERITY_TYPES.WARNING;
+
+		/* Checking to see if chunk name is present in final assets */
+		if (compilation.namedChunks.get(chunkName)) {
+			const chunk = compilation.namedChunks.get(chunkName);
+			const chunkAssets = {};
+
+			// used to check which assets are present & which are not
+			const hasAssets = {
+				js: false,
+				css: false
+			};
+
+			// Iterating over chunk files and collecting stats of file with css/js extension
+			chunk.files.forEach((file) => {
+				// get the file size from assets array
+				const size = compilation.assets[file].size();
+				let fileType = '';
+				const fileExt = path.extname(file);
+				if (fileExt === '.css' || fileExt === '.scss') {
+					fileType = 'css';
+				} else if (fileExt === '.js') {
+					fileType = 'js';
+				}
+
+				if (fileType === 'js' || fileType === 'css') {
+					const sizeProp = fileType === 'js' ? 'jsSize' : 'cssSize';
+					if (
+						!hasOwnProperty(restriction, sizeProp) ||
+						!restriction[sizeProp]
+					) {
+						// exit if 'jsSize' or 'cssSize' is not specified for 'js' and 'css' file respectively
+						return;
+					}
+					hasAssets[fileType] = true;
+					chunkAssets[fileType] = {
+						file,
+						size,
+						limit: restriction[sizeProp]
+					};
+					// check the restriction against the asset's size
+					const reason = checkForChunkSizeLimit({
+						limit: restriction[sizeProp],
+						actualSize: size,
+						deltaInSizes: delta
+					});
+
+					restrictionStats.messages.push({
+						type: reason.type,
+						chunkName,
+						file,
+						fileType,
+						severity,
+						size: formatSize(size),
+						difference: reason.difference,
+						limit: restriction[sizeProp]
+					});
+				}
+			});
+			if (!hasAssets.js || !hasAssets.css) {
+				let missingFileType;
+				if (!hasAssets.js && !!restriction.jsSize) {
+					missingFileType = 'js';
+				} else if (!hasAssets.css && !!restriction.cssSize) {
+					missingFileType = 'css';
+				}
+				if (missingFileType) {
+					restrictionStats.messages.push({
+						type: REASONS.MISSING,
+						chunkName,
+						fileType: missingFileType,
+						severity: SEVERITY_TYPES.WARNING
+					});
+				}
+			}
+			if (hasAssets.js || hasAssets.css) {
+				restrictionStats.chunks[chunkName] = chunkAssets;
+			}
+		} else {
+			restrictionStats.messages.push({
+				type: REASONS.MISSING,
+				severity: SEVERITY_TYPES.WARNING,
+				chunkName
+			});
 		}
-		if (
-			!numberParser.invalid &&
-			typeof size === 'number' &&
-			size < manifest[restriction.chunkName][fileExt].size
-		) {
-			messages.pushMessage(
-				severity,
-				replaceMessagePlaceholder(
-					{
-						chunkName: restriction.chunkName,
-						ext: fileExt,
-						totalSize: formatSize(
-							manifest[restriction.chunkName][fileExt].size
-						),
-						difference: formatSize(
-							manifest[restriction.chunkName][fileExt].size - size
-						),
-						restriction: formatSize(size)
+	});
+	return restrictionStats;
+}
+
+export function validateOptions(opts) {
+	if (!opts) {
+		throw new ValidationError(
+			[
+				{
+					dataPath: '',
+					keyword: 'type',
+					params: {
+						type: 'object'
 					},
-					msgFormat
-				)
-			);
-		}
+					parentSchema: {
+						type: 'null',
+						description: 'Invalid configuration supplied'
+					}
+				}
+			],
+			schema
+		);
+	} else if (!opts.restrictions) {
+		throw new ValidationError(
+			[
+				{
+					dataPath: '',
+					keyword: 'required',
+					params: {
+						type: 'object',
+						missingProperty: 'restrictions'
+					},
+					parentSchema: {
+						type: 'null',
+						description: 'Property "restrictions" can not be blank'
+					}
+				}
+			],
+			schema
+		);
+	} else {
+		validate(schema, opts, 'Chunk Restriction Plugin');
 	}
 }

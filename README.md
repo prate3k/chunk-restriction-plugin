@@ -1,91 +1,151 @@
-# chunk-restriction-plugin
-> Webpack plugin to help you monitor your chunk size.
+<div align="center">
+  <a href="https://github.com/webpack/webpack">
+    <img width="200" height="200"
+      src="https://webpack.js.org/assets/icon-square-big.svg">
+  </a>
+  <h1>Chunk Restriction Plugin</h1>
+</div>
 
-##### Install the package :
-```bash
-npm install chunk-restriction-plugin --save-dev
+[![npm][npm]][npm-url]
+[![node][node]][node-url]
+[![deps][deps]][deps-url]
+[![size][size]][size-url]
+
+# chunk-restriction-plugin
+
+Help you monitor your chunk size.
+
+## Getting Started
+
+To begin, you'll need to install `chunk-restriction-plugin`:
+
+```console
+npm install --save-dev chunk-restriction-plugin
 ```
 
-##### Usage :
-```javascript
-const ChunkRestrictionPlugin = require('chunk-restriction-plugin')
+Then add the plugin to your `webpack` config. For example:
 
-const webpackConfig = {
-	mode: 'production',
-	.
-	.
-	.
+**webpack.config.js**
+
+```js
+const ChunkRestrictionPlugin = require('chunk-restriction-plugin');
+
+module.exports = {
 	plugins: [
 		new ChunkRestrictionPlugin({
-		    restrictions: [{
-		    	chunkName: '<chunk_name>',
-		    	jsSize: <limit_on_js_size>,
-		    	cssSize: <limit_on_css_size>,
-		    	logType: '<error_or_warning>'
-		    }]
+			restrictions: [
+				{
+					chunkName: 'vendor',
+					jsSize: '200 KiB',
+					logType: 'warning'
+				},
+				{
+					chunkName: 'app',
+					jsSize: '150 KiB',
+					cssSize: '100 KiB',
+					logType: 'error'
+				}
+			]
 		})
 	]
-}
+};
 ```
 
-###### Log Screenshots :
-![Error Log](./screenshots/error.png)
+## Options
 
-![Warning log](./screenshots/warning.png)
+|                      Name                       |    Type     | Required |  Default  | Description                                                                                                                                                      |
+| :---------------------------------------------: | :---------: | :------: | :-------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|       [**`restrictions`**](#restrictions)       |  `{Array}`  |  `true`  |           | Allows to define restriction on chunk's assets (js & css only)                                                                                                   |
+|     [**`defaultLogType`**](#defaultLogType)     | `{String}`  | `false`  | `warning` | Allows to define default treatment for all the restrictions specified.                                                                                           |
+|      [**`logSafeChunks`**](#logSafeChunks)      | `{Boolean}` | `false`  |  `false`  | Allows to log information about chunks who are within the specified restriction.                                                                                 |
+| [**`safeSizeDifference`**](#safeSizeDifference) | `{String}`  | `false`  |           | Allows to define difference between asset's size and its restriction, to be considered safe size. If specified, warns about chunks who does not meet this value. |
 
-#### Options :
-Properties are define like this :
-> type &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mandatory &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; defaultValue
+### `restrictions`
 
+Type: `Array`
+Default: `null`
 
-#### restrictions :
-> array  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_mandatory_ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; []
+Allows to define restrictions on multiple chunks based on its chunk name.
 
-Chunks you want to put restriction on. Consist of array of object with each object having following properties : 
+Restriction object properties:
 
-##### chunkName :
-Used to specify the chunk name you want to put limit on.
+|    Property     |    Type    | Description                                                                                                                      |
+| :-------------: | :--------: | :------------------------------------------------------------------------------------------------------------------------------- |
+| **`chunkName`** | `{String}` | Allows to define chunk name                                                                                                      |
+|  **`jsSize`**   | `{String}` | Allows to define restriction on its JS asset. <br/> (in `Bytes/KiB/MiB`)                                                         | . |
+|  **`cssSize`**  | `{String}` | Allows to define restriction on its CSS asset. <br/> (in `Bytes/KiB/MiB`)                                                        |
+|  **`logType`**  | `{String}` | Allows to define severity of this restriction, overrides `defaultLogType` value. <br/>Possible values : `"error"` or `"warning"` |
 
 ##### jsSize :
-Used to set the hard limit on the js chunk size. <br/>
-Accepted value : `String` <br/>
-Accepted units : `Bytes, KiB/Kb, Mb` only<br/>
-e.g.: '11 Bytes, 22 Kb, 24 Mb etc.'
+
+Used to set the limit on the chunk's js asset size. <br/>
+
+Possible units:
+
+- `Byte/Bytes`
+- `Kb/KiB`
+- `Mb,MiB`
 
 ##### cssSize :
-Used to set the hard limit on the css chunk size.<br/>
-type : `String` <br/>
-Accepted units : `Bytes, KiB/Kb, Mb` only <br/>
-e.g.: '11 Bytes, 22 KB, 24 Mb etc.'
+
+Used to set the limit on the chunk's css asset size.<br/>
+
+Possible units:
+
+- `Byte/Bytes`
+- `Kb/KiB`
+- `Mb,MiB`
 
 ##### logType :
-To specify how to treat this restriction check once its met, as error or warning. Overrides `defaultLogType`. Default value set on the basis of `defaultLogType` option value.
-Possible values : "error" or "warning"
 
-##### logMessageFormat :
-Used to customize log message format as per the way you want to log message. Overrides `defaultLogMessageFormat`. See `defaultLogmessageFormat` for more details.
+Allows to specify severity of this restriction. Overrides `defaultLogType`. Its default value gets set on the basis of `defaultLogType` option value.
 
-#### defaultLogMessageFormat :
-> String &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; optional &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 'warning'
+Possible values :
 
-Used to customize log message format.<br/>
+- `"error"`
+- `"warning"`
 
-Available placeholders : 
-<ul>
-    <li><b>__CHUNK_NAME__</b> : Gets replaced with the chunk name</li>
-    <li><b>__EXT__</b> : Gets replaced with the chunk extension</li>
-    <li><b>__TOTAL_SIZE__</b> : Gets replaced with total chunk size</li>
-    <li><b>__RESTRICTION__</b> : Gets replaced with the restriction you have specified for that chunk</li>
-    <li><b>__DIFFERENCE__</b> : Gets replaced with how many bytes that chunk is exceeding the set restriction.</li>
-</ul>
-Default message format : "__CHUNK_NAME__ __EXT__ chunk (size: __TOTAL_SIZE__) is exceeding the set threshold of __RESTRICTION__ by __DIFFERENCE__"
+### `defaultLogType`
 
-#### defaultLogType :
-> String &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; optional &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 'warning'
+Type: `String`
+Default: `warning`
 
-To set the default treatment for all the restriction check specified. Possible values : "error" or "warning"
+Allows to define default treatment (either treat it as warning or error) for all the restrictions specified.
 
+Possible values :
 
-License
--
-[MIT](https://github.com/prate3k/reactify-observe/blob/master/LICENSE)
+- `"error"`
+- `"warning"`
+
+### `logSafeChunks`
+
+Type: `Boolean`
+Default: `false`
+
+Enable logging information about all the chunks who are within the defined restriction.
+
+### `safeSizeDifference`
+
+Type: `String`
+Default: `""`
+
+Allows to define difference between asset's size and its restriction, which will be considered as safe size for all the chunks. If specified, warns about chunks who does not satisfy this condition. Useful when you want to get information about chunk's asset, whose size is about to meet its restriction.
+
+Possible units:
+
+- `Byte/Bytes`
+- `Kb/KiB`
+- `Mb,MiB`
+
+## License
+
+[MIT](./LICENSE)
+
+[npm]: https://img.shields.io/npm/v/chunk-restriction-plugin.svg
+[npm-url]: https://npmjs.com/package/chunk-restriction-plugin
+[node]: https://img.shields.io/node/v/chunk-restriction-plugin.svg
+[node-url]: https://nodejs.org
+[deps]: https://david-dm.org/prate3k/chunk-restriction-plugin.svg
+[deps-url]: https://david-dm.org/prate3k/chunk-restriction-plugin
+[size]: https://packagephobia.now.sh/badge?p=chunk-restriction-plugin
+[size-url]: https://packagephobia.now.sh/result?p=chunk-restriction-plugin

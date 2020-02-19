@@ -22,20 +22,16 @@
 					"type": "string"
 				},
 				"jsSize": {
-					"description": "Specify restriction on number of bytes JS chunks can be, accepted format Bytes, KiB, MB only",
+					"description": "Specify restriction on number of bytes JS chunks can be, accepted format: Bytes, KiB, MB only",
 					"type": "string"
 				},
 				"cssSize": {
-					"description": "Specify restriction on number of bytes CSS chunks can be, accepted format Bytes, KiB, MB only",
+					"description": "Specify restriction on number of bytes CSS chunks can be, accepted format: Bytes, KiB, MB only",
 					"type": "string"
 				},
 				"logType": {
 					"description": "Specify the default way to treat all the restriction checks at chunk level, overrides the default behaviour",
 					"enum": ["warning", "error"]
-				},
-				"logMessageFormat": {
-					"description": "Used to customize log message format, overrides defaultLogMessageFormat",
-					"type": "string"
 				}
 			}
 		}
@@ -53,8 +49,12 @@
 			"description": "Specify the default way to treat all the restriction checks",
 			"enum": ["warning", "error"]
 		},
-		"defaultLogMessageFormat": {
-			"description": "Used to customize log message format for all the restrictions",
+		"logSafeChunks": {
+			"description": "Used to log information about chunks who satisfy its defined restriction.",
+			"type": "boolean"
+		},
+		"safeSizeDifference": {
+			"description": "Used to set delta between asset's size and its set restriction. Throws warning about all the chunks, who fits this difference.",
 			"type": "string"
 		}
 	}
