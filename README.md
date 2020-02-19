@@ -20,7 +20,7 @@ Help you monitor your chunk size.
 To begin, you'll need to install `chunk-restriction-plugin`:
 
 ```console
-npm install --save chunk-restriction-plugin
+npm install --save-dev chunk-restriction-plugin
 ```
 
 Then add the plugin to your `webpack` config. For example:
@@ -129,7 +129,7 @@ Enable logging information about all the chunks who are within the defined restr
 Type: `String`
 Default: `""`
 
-Allows to define difference between asset's size and its restriction, to be considered safe size for all the chunks. If specified, warns about chunks who does not meet this value. Useful when you want to get information about chunk's asset, whose size is about to meet its restriction.
+Allows to define difference between asset's size and its restriction, which will be considered as safe size for all the chunks. If specified, warns about chunks who does not satisfy this condition. Useful when you want to get information about chunk's asset, whose size is about to meet its restriction.
 
 Possible units:
 
