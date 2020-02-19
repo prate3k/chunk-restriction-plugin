@@ -30,7 +30,7 @@ export default class Logger {
 					`${spaces}Chunk Name\t: ${message.chunkName}`,
 					`${spaces}Asset type\t: "${message.fileType}"`,
 					`${spaces}Current Size\t: ${message.size}`,
-					`${spaces}Exceeds by\t: + ${message.difference}`
+					`${spaces}Exceeds by\t: +${message.difference}`
 				].join('\n')}\n`
 			);
 		} else if (message.type === REASONS.INVALID_ASSET_SIZE) {
@@ -93,19 +93,6 @@ export default class Logger {
 		}
 	}
 
-	logInfoMessages(compilation) {
-		if (this.infos && this.infos.length > 0) {
-			(compilation.getLogger
-				? compilation.getLogger(this.pluginName)
-				: console
-			).log(
-				`\nINFO for Chunk restriction plugin 🤩, chunk(s) whose size is within the restriction\n${this.infos.join(
-					'\n'
-				)}\n`
-			);
-		}
-	}
-
 	hasErrors() {
 		return this.errors && this.errors.length > 0;
 	}
@@ -119,10 +106,20 @@ export default class Logger {
 		return '';
 	}
 
-	log(compilation) {
+	log(compilation, logSafeChunks) {
 		if (this.warnings && this.warnings.length > 0) {
 			compilation.warnings.push(
 				`Chunk Restriction Plugin (◕_◕), check the following instructions:\n${this.warnings.join(
+					'\n'
+				)}\n`
+			);
+		}
+		if (logSafeChunks && this.infos && this.infos.length) {
+			(compilation.getLogger
+				? compilation.getLogger(this.pluginName)
+				: console
+			).log(
+				`\nINFO about chunk(s) whose size is within the restriction 🤩 ( Chunk Restriciton Plugin ):\n${this.infos.join(
 					'\n'
 				)}\n`
 			);

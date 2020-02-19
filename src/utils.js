@@ -3,7 +3,7 @@ import path from 'path';
 import validate from 'schema-utils';
 import ValidationError from 'schema-utils/dist/ValidationError';
 
-import schema from './options.json';
+import schema from './schema.json';
 
 import { SEVERITY_TYPES, REASONS } from './constants';
 

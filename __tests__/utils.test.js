@@ -4,9 +4,9 @@ import {
 	checkForChunkSizeLimit,
 	processChunkStats,
 	validateOptions
-} from '../utils';
+} from '../src/utils';
 
-import { REASONS, SEVERITY_TYPES } from '../constants';
+import { REASONS, SEVERITY_TYPES } from '../src/constants';
 
 describe('Utils test scenarios', () => {
 	describe('formatSize tests', () => {

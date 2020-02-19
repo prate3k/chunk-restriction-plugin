@@ -49,8 +49,8 @@
 			"description": "Specify the default way to treat all the restriction checks",
 			"enum": ["warning", "error"]
 		},
-		"enableInfoLogs": {
-			"description": "Used to log information about all the chunks who met the restrictions defined",
+		"logSafeChunks": {
+			"description": "Used to log information about chunks who satisfy its defined restriction.",
 			"type": "boolean"
 		},
 		"safeSizeDifference": {

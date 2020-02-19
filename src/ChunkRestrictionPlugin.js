@@ -13,7 +13,7 @@ class ChunkRestrictionPlugin {
 	handleAfterEmitHook(compilation, callback) {
 		const manifest = processChunkStats(compilation, this.opts);
 		manifest.messages.forEach(this.logger.interpret);
-		this.logger.log(compilation, this.opts.enableInfoLogs);
+		this.logger.log(compilation, this.opts.logSafeChunks);
 
 		if (typeof callback === 'function') {
 			callback(this.logger.getErrors());
