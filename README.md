@@ -53,12 +53,12 @@ module.exports = {
 
 ## Options
 
-|                      Name                       |          Type           | Required |  Default  | Description                                                                                                                                                      |
-| :---------------------------------------------: | :---------------------: | :------: | :-------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|       [**`restrictions`**](#restrictions)       | `{Array<Restrictions>}` |  `true`  |           | Allows to define restriction on chunk's assets (js & css only)                                                                                                   |
-|     [**`defaultLogType`**](#defaultLogType)     |       `{String}`        | `false`  | `warning` | Allows to define default treatment for all the restrictions specified.                                                                                           |
-|     [**`enableInfoLogs`**](#enableInfoLogs)     |       `{Boolean}`       | `false`  |  `false`  | Allows to log information about chunks who are within the specified restriction.                                                                                 |
-| [**`safeSizeDifference`**](#safeSizeDifference) |       `{String}`        | `false`  |    ''     | Allows to define difference between asset's size and its restriction, to be considered safe size. If specified, warns about chunks who does not meet this value. |
+|                      Name                       |    Type     | Required |  Default  | Description                                                                                                                                                      |
+| :---------------------------------------------: | :---------: | :------: | :-------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|       [**`restrictions`**](#restrictions)       |  `{Array}`  |  `true`  |           | Allows to define restriction on chunk's assets (js & css only)                                                                                                   |
+|     [**`defaultLogType`**](#defaultLogType)     | `{String}`  | `false`  | `warning` | Allows to define default treatment for all the restrictions specified.                                                                                           |
+|     [**`enableInfoLogs`**](#enableInfoLogs)     | `{Boolean}` | `false`  |  `false`  | Allows to log information about chunks who are within the specified restriction.                                                                                 |
+| [**`safeSizeDifference`**](#safeSizeDifference) | `{String}`  | `false`  |           | Allows to define difference between asset's size and its restriction, to be considered safe size. If specified, warns about chunks who does not meet this value. |
 
 ### `restrictions`
 
@@ -67,7 +67,7 @@ Default: `null`
 
 Allows to define restrictions on multiple chunks based on its chunk name.
 
-Each restriction's object shape consists of:
+Restriction object properties:
 
 |    Property     |    Type    | Description                                                                                                                      |
 | :-------------: | :--------: | :------------------------------------------------------------------------------------------------------------------------------- |
