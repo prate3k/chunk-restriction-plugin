@@ -158,6 +158,15 @@ describe('Utils test scenarios', () => {
 				messages: [],
 				chunks: {}
 			});
+			// when restrictions array length is zero
+			expect(
+				processChunkStats(mockCompliationObj, {
+					restrictions: []
+				})
+			).toEqual({
+				messages: [],
+				chunks: {}
+			});
 		});
 		it('returns early when safeSizeDifference specified is invalid', () => {
 			expect(

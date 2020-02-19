@@ -1,7 +1,6 @@
 import path from 'path';
 
-import validate from 'schema-utils';
-import ValidationError from 'schema-utils/dist/ValidationError';
+import validate, { ValidateError } from 'schema-utils';
 
 import schema from './schema.json';
 
@@ -200,7 +199,7 @@ export function processChunkStats(
 
 export function validateOptions(opts) {
 	if (!opts) {
-		throw new ValidationError(
+		throw new ValidateError(
 			[
 				{
 					dataPath: '',
@@ -216,8 +215,8 @@ export function validateOptions(opts) {
 			],
 			schema
 		);
-	} else if (!opts.restrictions) {
-		throw new ValidationError(
+	} else if (!opts.restrictions || !opts.restrictions.length) {
+		throw new ValidateError(
 			[
 				{
 					dataPath: '',
