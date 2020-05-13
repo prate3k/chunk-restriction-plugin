@@ -122,7 +122,7 @@ Possible values :
 Type: `Boolean`
 Default: `false`
 
-Enable logging information about all the chunks who are within the defined restriction.
+Enable logging information about all the chunks who are within the defined restriction. Make sure `stats.logging` is set to `log` in your webpack configuration. (see [stats logging](https://webpack.js.org/configuration/stats/#statslogging) for more details)
 
 ### `safeSizeDifference`
 
